@@ -23,6 +23,7 @@ vlan_database_item_t* get_vlan_config(rtk_vlan_t vid);
 void parse_vlan_config(char* json_config);
 void load_switch_config();
 void set_current_device(uint8_t device);
+void
 
 
 
