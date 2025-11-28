@@ -21,8 +21,8 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-//#include "sw_config.h"
-//#include "sw_menu.h"
+#include "sw_config.h"
+#include "sw_menu.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -105,7 +105,7 @@ int main(void)
 	printf("=================================\n\r");
 	HAL_Delay(2000);
 	load_switch_config();
-	Menu_Init();
+	//Menu_Init();
   /* USER CODE END 2 */
 
   /* Infinite loop */
