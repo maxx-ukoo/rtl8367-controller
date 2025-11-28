@@ -100,12 +100,13 @@ int main(void)
   MX_USART1_UART_Init();
   MX_TIM1_Init();
   /* USER CODE BEGIN 2 */
-	printf("====  *** putin huilo ***  ===\r\n");
+    printf("\n\r=================================\n\r");
+    printf("====  *** putin huilo ***  ===\r\n");
 	printf("===      Starting switch      ===\n\r");
 	printf("=================================\n\r");
 	HAL_Delay(2000);
-	load_switch_config();
-	//Menu_Init();
+	//load_switch_config();
+	Menu_Init();
   /* USER CODE END 2 */
 
   /* Infinite loop */

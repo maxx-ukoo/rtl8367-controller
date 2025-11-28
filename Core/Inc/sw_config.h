@@ -12,7 +12,6 @@
 
 #define MAX_VLANS	10
 
-
 typedef struct {
 	rtk_vlan_t vid;
 	rtk_vlan_cfg_t vlan_sw1;
