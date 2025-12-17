@@ -175,6 +175,9 @@ void ProcessInput(char *input) {
             } else if (strcmp(input, "w") == 0) {
             	if (Flash_WritePorts() == HAL_OK) {
             	    UART_SendString("Config written to Flash!\r\n");
+            	    NVIC_SystemReset();
+            	} else {
+            		UART_SendString("Failed writing config to Flash!\r\n");
             	}
                 ShowMainMenu();
             } else {

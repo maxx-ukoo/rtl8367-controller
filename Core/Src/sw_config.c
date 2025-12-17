@@ -28,18 +28,15 @@ uint32_t rtkI2C_SDApin;
 #define RTL_DEVICE_1	1
 #define RTL_DEVICE_2	2
 
-static vlan_database_item_t vlan_database[MAX_VLANS] = {
-		{ .vid = 0, .vlan_sw1 = { 0 }, .vlan_sw2 = { 0 } },
-		{ .vid = 0, .vlan_sw1 = { 0 }, .vlan_sw2 = { 0 } },
-		{ .vid = 0, .vlan_sw1 = { 0 }, .vlan_sw2 = { 0 } },
-		{ .vid = 0, .vlan_sw1 = { 0 }, .vlan_sw2 = { 0 } },
-		{ .vid = 0, .vlan_sw1 = { 0 }, .vlan_sw2 = { 0 } },
-		{ .vid = 0, .vlan_sw1 = { 0 }, .vlan_sw2 = { 0 } },
-		{ .vid = 0, .vlan_sw1 = { 0 }, .vlan_sw2 = { 0 } },
-		{ .vid = 0, .vlan_sw1 = { 0 }, .vlan_sw2 = { 0 } },
-		{ .vid = 0, .vlan_sw1 = { 0 }, .vlan_sw2 = { 0 } },
-		{ .vid = 0, .vlan_sw1 = { 0 }, .vlan_sw2 = { 0 } }
-};
+static vlan_database_item_t vlan_database[MAX_VLANS] = { { .vid = 0, .vlan_sw1 =
+		{ 0 }, .vlan_sw2 = { 0 } }, { .vid = 0, .vlan_sw1 = { 0 }, .vlan_sw2 = {
+		0 } }, { .vid = 0, .vlan_sw1 = { 0 }, .vlan_sw2 = { 0 } }, { .vid = 0,
+		.vlan_sw1 = { 0 }, .vlan_sw2 = { 0 } }, { .vid = 0, .vlan_sw1 = { 0 },
+		.vlan_sw2 = { 0 } }, { .vid = 0, .vlan_sw1 = { 0 }, .vlan_sw2 = { 0 } },
+		{ .vid = 0, .vlan_sw1 = { 0 }, .vlan_sw2 = { 0 } }, { .vid = 0,
+				.vlan_sw1 = { 0 }, .vlan_sw2 = { 0 } }, { .vid = 0, .vlan_sw1 =
+				{ 0 }, .vlan_sw2 = { 0 } }, { .vid = 0, .vlan_sw1 = { 0 },
+				.vlan_sw2 = { 0 } } };
 
 char* json_config = R"JSON_CONFIG(
 {
@@ -79,10 +76,10 @@ char* json_config = R"JSON_CONFIG(
 
 static uint8_t check_for_error(rtk_api_ret_t status, char *message) {
 	if (status == RT_ERR_OK) {
-		printf("%s successfully.\n", message);
+		printf("%s successfully.\r\n", message);
 		return 0;
 	} else {
-		printf("%s with error: %ld\n", message, status);
+		printf("%s with error: %ld\r\n", message, status);
 	}
 	return 1;
 }
@@ -98,7 +95,8 @@ static void configure_rgmii_link(void) {
 	rgmii_config.txpause = RTK_ENABLED;
 	rgmii_config.rxpause = RTK_ENABLED;
 
-	rtk_api_ret_t status = rtk_port_macForceLinkExt_set(LINK_PORT, MODE_EXT_RGMII, &rgmii_config);
+	rtk_api_ret_t status = rtk_port_macForceLinkExt_set(LINK_PORT,
+			MODE_EXT_RGMII, &rgmii_config);
 	check_for_error(status, "rtk_port_macForceLinkExt_set executed");
 	status = rtk_port_rgmiiDelayExt_set(LINK_PORT, 1, 3);
 	check_for_error(status, "rtk_port_rgmiiDelayExt_set executed");
@@ -108,11 +106,11 @@ static void configure_rgmii_link(void) {
 
 vlan_database_item_t* get_vlan_config(rtk_vlan_t vid) {
 	int current_vlan = 0;
-	for (current_vlan=0; current_vlan<MAX_VLANS; current_vlan++) {
+	for (current_vlan = 0; current_vlan < MAX_VLANS; current_vlan++) {
 		if (vlan_database[current_vlan].vid == 0) {
 			break;
 		}
-		if (vlan_database[current_vlan].vid ==vid) {
+		if (vlan_database[current_vlan].vid == vid) {
 			return &vlan_database[current_vlan];
 		}
 	}
@@ -130,46 +128,59 @@ void parse_vlan_config(char *json_config) {
 
 		/* Get very first token as top object */
 		t = lwjson_get_first_token(&lwjson);
-		for (const lwjson_token_t *tkn = lwjson_get_first_child(t); tkn != NULL; tkn = tkn->next) {
+		for (const lwjson_token_t *tkn = lwjson_get_first_child(t); tkn != NULL;
+				tkn = tkn->next) {
 			if (tkn->type == LWJSON_TYPE_OBJECT) {
 				char tmp_str[256];
 				tmp_str[0] = '\0';
 				strncpy(tmp_str, tkn->token_name, tkn->token_name_len);
 				tmp_str[tkn->token_name_len] = '\0';
 				int user_sw_port = atoi(tmp_str);
-				rtk_port_t  rtl_port = user_sw_port-1;
+				rtk_port_t rtl_port = user_sw_port - 1;
 				if (user_sw_port > 5) {
-					rtl_port = user_sw_port-6;
+					rtl_port = user_sw_port - 6;
 				}
 
-				printf("SW port: %d, hardware port %d\n\r", user_sw_port, rtl_port);
+				printf("SW port: %d, hardware port %d\n\r", user_sw_port,
+						rtl_port);
 				rtk_vlan_t vlan_id = 0;
 
 				/* Now print all keys in the object */
-				for (const lwjson_token_t *tkn2 = lwjson_get_first_child(tkn); tkn2 != NULL; tkn2 = tkn2->next) {
+				for (const lwjson_token_t *tkn2 = lwjson_get_first_child(tkn);
+						tkn2 != NULL; tkn2 = tkn2->next) {
 
 					if (tkn2->type == LWJSON_TYPE_NUM_INT) {
 						vlan_id = (int) lwjson_get_val_int(tkn2);
-						vlan_database_item_t* vlan = get_vlan_config(vlan_id);
+						vlan_database_item_t *vlan = get_vlan_config(vlan_id);
 
 						if (user_sw_port < 6) {
-							printf("Set port %d as member of vlan: %ld \n\r", user_sw_port, vlan_id);
+							printf("Set port %d as member of vlan: %ld \n\r",
+									user_sw_port, vlan_id);
 							RTK_PORTMASK_PORT_SET(vlan->vlan_sw1.mbr, rtl_port);
-							RTK_PORTMASK_PORT_SET(vlan->vlan_sw1.mbr, LINK_PORT);
-							RTK_PORTMASK_PORT_SET(vlan->vlan_sw1.untag, rtl_port);
-							RTK_PORTMASK_PORT_SET(vlan->vlan_sw2.mbr, LINK_PORT);
+							RTK_PORTMASK_PORT_SET(vlan->vlan_sw1.mbr,
+									LINK_PORT);
+							RTK_PORTMASK_PORT_SET(vlan->vlan_sw1.untag,
+									rtl_port);
+							RTK_PORTMASK_PORT_SET(vlan->vlan_sw2.mbr,
+									LINK_PORT);
 							//set_current_device(RTL_DEVICE_1);
-							printf("Set portPvid %ld for port: %d \n\r", vlan_id, rtl_port);
+							printf("Set portPvid %ld for port: %d \n\r",
+									vlan_id, rtl_port);
 							//rtk_api_ret_t rtl_status = rtk_vlan_portPvid_set(rtl_port, vlan_id, 0);
 							//check_for_error(rtl_status, "SW1 rtk_vlan_portPvid_set");
 						} else {
-							printf("Set port %d as member of vlan: %ld \n\r", user_sw_port, vlan_id);
+							printf("Set port %d as member of vlan: %ld \n\r",
+									user_sw_port, vlan_id);
 							RTK_PORTMASK_PORT_SET(vlan->vlan_sw2.mbr, rtl_port);
-							RTK_PORTMASK_PORT_SET(vlan->vlan_sw2.mbr, LINK_PORT);
-							RTK_PORTMASK_PORT_SET(vlan->vlan_sw2.untag, rtl_port);
-							RTK_PORTMASK_PORT_SET(vlan->vlan_sw1.mbr, LINK_PORT);
+							RTK_PORTMASK_PORT_SET(vlan->vlan_sw2.mbr,
+									LINK_PORT);
+							RTK_PORTMASK_PORT_SET(vlan->vlan_sw2.untag,
+									rtl_port);
+							RTK_PORTMASK_PORT_SET(vlan->vlan_sw1.mbr,
+									LINK_PORT);
 							//set_current_device(RTL_DEVICE_2);
-							printf("Set portPvid %ld for port: %d \n\r", vlan_id, rtl_port);
+							printf("Set portPvid %ld for port: %d \n\r",
+									vlan_id, rtl_port);
 							//rtk_api_ret_t rtl_status = rtk_vlan_portPvid_set(rtl_port, vlan_id, 0);
 							//check_for_error(rtl_status, "SW2 rtk_vlan_portPvid_set");
 						}
@@ -177,16 +188,26 @@ void parse_vlan_config(char *json_config) {
 					if (tkn2->type == LWJSON_TYPE_ARRAY) {
 						//printf(": Token is array or object...check children tokens if any, in recursive mode..");
 						/* Get first child of token */
-						for (const lwjson_token_t *array = lwjson_get_first_child(tkn2); array != NULL; array = array->next) {
-							rtk_vlan_t trunk_vlan_id = (rtk_vlan_t) lwjson_get_val_int(array);
-							vlan_database_item_t* vlan = get_vlan_config(trunk_vlan_id);
-							printf("Set vlan : %ld as trunk member of port: %d\n\r", trunk_vlan_id, user_sw_port);
-							RTK_PORTMASK_PORT_SET(vlan->vlan_sw1.mbr, LINK_PORT);
-							RTK_PORTMASK_PORT_SET(vlan->vlan_sw2.mbr, LINK_PORT);
+						for (const lwjson_token_t *array =
+								lwjson_get_first_child(tkn2); array != NULL;
+								array = array->next) {
+							rtk_vlan_t trunk_vlan_id =
+									(rtk_vlan_t) lwjson_get_val_int(array);
+							vlan_database_item_t *vlan = get_vlan_config(
+									trunk_vlan_id);
+							printf(
+									"Set vlan : %ld as trunk member of port: %d\n\r",
+									trunk_vlan_id, user_sw_port);
+							RTK_PORTMASK_PORT_SET(vlan->vlan_sw1.mbr,
+									LINK_PORT);
+							RTK_PORTMASK_PORT_SET(vlan->vlan_sw2.mbr,
+									LINK_PORT);
 							if (user_sw_port < 6) {
-								RTK_PORTMASK_PORT_SET(vlan->vlan_sw1.mbr, rtl_port);
+								RTK_PORTMASK_PORT_SET(vlan->vlan_sw1.mbr,
+										rtl_port);
 							} else {
-								RTK_PORTMASK_PORT_SET(vlan->vlan_sw2.mbr, rtl_port);
+								RTK_PORTMASK_PORT_SET(vlan->vlan_sw2.mbr,
+										rtl_port);
 							}
 						}
 					}
@@ -194,189 +215,148 @@ void parse_vlan_config(char *json_config) {
 			}
 		}
 		printf("Configuring vlans...\n\r");
-		for (int current_vlan=0; current_vlan<MAX_VLANS; current_vlan++) {
+		for (int current_vlan = 0; current_vlan < MAX_VLANS; current_vlan++) {
 			if (vlan_database[current_vlan].vid == 0) {
 				break;
 			}
 			set_current_device(RTL_DEVICE_1);
-			rtk_api_ret_t rtl_status = rtk_vlan_set(vlan_database[current_vlan].vid, &vlan_database[current_vlan].vlan_sw1);
+			rtk_api_ret_t rtl_status = rtk_vlan_set(
+					vlan_database[current_vlan].vid,
+					&vlan_database[current_vlan].vlan_sw1);
 			check_for_error(rtl_status, "SW1 rtk_vlan_set");
 			for (int port = 0; port < 5; port++) {
-				if (RTK_PORTMASK_IS_PORT_SET(vlan_database[current_vlan].vlan_sw1.untag, port)) {
-					 rtl_status = rtk_vlan_portPvid_set(port, vlan_database[current_vlan].vid, 0);
-				     check_for_error(rtl_status, "SW1 rtk_vlan_portPvid_set");
-				 }
+				if (RTK_PORTMASK_IS_PORT_SET(
+						vlan_database[current_vlan].vlan_sw1.untag, port)) {
+					rtl_status = rtk_vlan_portPvid_set(port,
+							vlan_database[current_vlan].vid, 0);
+					check_for_error(rtl_status, "SW1 rtk_vlan_portPvid_set");
+				}
 			}
 			set_current_device(RTL_DEVICE_2);
-			rtl_status = rtk_vlan_set(vlan_database[current_vlan].vid, &vlan_database[current_vlan].vlan_sw2);
+			rtl_status = rtk_vlan_set(vlan_database[current_vlan].vid,
+					&vlan_database[current_vlan].vlan_sw2);
 			check_for_error(rtl_status, "SW2 rtk_vlan_set");
 			for (int port = 0; port < 5; port++) {
-				if (RTK_PORTMASK_IS_PORT_SET(vlan_database[current_vlan].vlan_sw2.untag, port)) {
-					 rtl_status = rtk_vlan_portPvid_set(port, vlan_database[current_vlan].vid, 0);
-				     check_for_error(rtl_status, "SW2 rtk_vlan_portPvid_set");
-				 }
+				if (RTK_PORTMASK_IS_PORT_SET(
+						vlan_database[current_vlan].vlan_sw2.untag, port)) {
+					rtl_status = rtk_vlan_portPvid_set(port,
+							vlan_database[current_vlan].vid, 0);
+					check_for_error(rtl_status, "SW2 rtk_vlan_portPvid_set");
+				}
 			}
 		}
 	}
 }
 
+void print_bits(rtk_portmask_t value) {
+	for (int i=17; i>= 0; i--) {
+		if (RTK_PORTMASK_IS_PORT_SET(value, i)) {
+			putchar('1');
+		} else {
+			putchar('0');
+		}
+	}
+	putchar('\n');
+	putchar('\r');
+}
 
-void parse_vlan_config_from_ports(PortConfig* ports) {
+void parse_vlan_config_from_ports(PortConfig *ports) {
 	HAL_GPIO_WritePin(BOARD_LED_GPIO_Port, BOARD_LED_Pin, GPIO_PIN_SET);
-    for (int user_sw_port = 1; user_sw_port <= MAX_PORTS; user_sw_port++) {
-		rtk_port_t  rtl_port = user_sw_port-1;
+	for (int user_sw_port = 1; user_sw_port <= MAX_PORTS; user_sw_port++) {
+		rtk_port_t rtl_port = user_sw_port - 1;
 		if (user_sw_port > 5) {
-			rtl_port = user_sw_port-6;
+			rtl_port = user_sw_port - 6;
 		}
 		rtk_vlan_t vlan_id = 0;
 
-
-        if (ports[user_sw_port].vlan != -1) {
-        	vlan_id = ports[user_sw_port].vlan;
-        	vlan_database_item_t* vlan = get_vlan_config(vlan_id);
+		if (ports[user_sw_port].vlan != -1) {
+			vlan_id = ports[user_sw_port].vlan;
+			vlan_database_item_t *vlan = get_vlan_config(vlan_id);
 
 			if (user_sw_port < 6) {
-				printf("Set port %d as member of vlan: %ld \n\r", user_sw_port, vlan_id);
+				printf("Set SW1 port %d as member of vlan: %ld \n\r", user_sw_port, vlan_id);
 				RTK_PORTMASK_PORT_SET(vlan->vlan_sw1.mbr, rtl_port);
 				RTK_PORTMASK_PORT_SET(vlan->vlan_sw1.mbr, LINK_PORT);
 				RTK_PORTMASK_PORT_SET(vlan->vlan_sw1.untag, rtl_port);
 				RTK_PORTMASK_PORT_SET(vlan->vlan_sw2.mbr, LINK_PORT);
 				//set_current_device(RTL_DEVICE_1);
-				printf("Set portPvid %ld for port: %d \n\r", vlan_id, rtl_port);
+				printf("Set SW1 port %d with portPvid = %ld \n\r", user_sw_port, vlan_id);
 				//rtk_api_ret_t rtl_status = rtk_vlan_portPvid_set(rtl_port, vlan_id, 0);
 				//check_for_error(rtl_status, "SW1 rtk_vlan_portPvid_set");
 			} else {
-				printf("Set port %d as member of vlan: %ld \n\r", user_sw_port, vlan_id);
+				printf("Set SW2 port %d as member of vlan: %ld \n\r", user_sw_port, vlan_id);
 				RTK_PORTMASK_PORT_SET(vlan->vlan_sw2.mbr, rtl_port);
 				RTK_PORTMASK_PORT_SET(vlan->vlan_sw2.mbr, LINK_PORT);
 				RTK_PORTMASK_PORT_SET(vlan->vlan_sw2.untag, rtl_port);
 				RTK_PORTMASK_PORT_SET(vlan->vlan_sw1.mbr, LINK_PORT);
 				//set_current_device(RTL_DEVICE_2);
-				printf("Set portPvid %ld for port: %d \n\r", vlan_id, rtl_port);
+				printf("Set SW2 port %d with portPvid = %ld \n\r", user_sw_port, vlan_id);
 				//rtk_api_ret_t rtl_status = rtk_vlan_portPvid_set(rtl_port, vlan_id, 0);
 				//check_for_error(rtl_status, "SW2 rtk_vlan_portPvid_set");
 			}
-        }
-        if (ports[user_sw_port].trunkCount > 0) {
+		}
+		if (ports[user_sw_port].trunkCount > 0) {
 
-            for (int j = 0; j < ports[ports[user_sw_port].trunk[j]].trunkCount; j++) {
-            	rtk_vlan_t trunk_vlan_id = ports[ports[user_sw_port].trunk[j]].trunk[j];
-            	vlan_database_item_t* vlan = get_vlan_config(trunk_vlan_id);
-
-            	printf("Set vlan : %ld as trunk member of port: %d\n\r", trunk_vlan_id, user_sw_port);
+			for (int j = 0; j < ports[user_sw_port].trunkCount; j++) {
+				rtk_vlan_t trunk_vlan_id = ports[user_sw_port].trunk[j];
+				vlan_database_item_t *vlan = get_vlan_config(trunk_vlan_id);
 				RTK_PORTMASK_PORT_SET(vlan->vlan_sw1.mbr, LINK_PORT);
 				RTK_PORTMASK_PORT_SET(vlan->vlan_sw2.mbr, LINK_PORT);
 				if (user_sw_port < 6) {
+					printf("Set SW1 port %d as trunk member of vlan %ld \n\r", user_sw_port, trunk_vlan_id);
 					RTK_PORTMASK_PORT_SET(vlan->vlan_sw1.mbr, rtl_port);
 				} else {
+					printf("Set SW2 port %d as trunk member of vlan %ld \n\r", user_sw_port, trunk_vlan_id);
 					RTK_PORTMASK_PORT_SET(vlan->vlan_sw2.mbr, rtl_port);
-				}
-            }
-        }
-    }
-
-	lwjson_init(&lwjson, tokens, LWJSON_ARRAYSIZE(tokens));
-	lwjsonr_t status = lwjson_parse(&lwjson, json_config);
-	if (status == lwjsonOK) {
-		lwjson_token_t *t;
-		printf("JSON config has valid JSON format...\r\n");
-		HAL_GPIO_WritePin(BOARD_LED_GPIO_Port, BOARD_LED_Pin, GPIO_PIN_SET);
-
-		/* Get very first token as top object */
-		t = lwjson_get_first_token(&lwjson);
-		for (const lwjson_token_t *tkn = lwjson_get_first_child(t); tkn != NULL; tkn = tkn->next) {
-			if (tkn->type == LWJSON_TYPE_OBJECT) {
-				char tmp_str[256];
-				tmp_str[0] = '\0';
-				strncpy(tmp_str, tkn->token_name, tkn->token_name_len);
-				tmp_str[tkn->token_name_len] = '\0';
-				int user_sw_port = atoi(tmp_str);
-				rtk_port_t  rtl_port = user_sw_port-1;
-				if (user_sw_port > 5) {
-					rtl_port = user_sw_port-6;
-				}
-
-				printf("SW port: %d, hardware port %d\n\r", user_sw_port, rtl_port);
-				rtk_vlan_t vlan_id = 0;
-
-				/* Now print all keys in the object */
-				for (const lwjson_token_t *tkn2 = lwjson_get_first_child(tkn); tkn2 != NULL; tkn2 = tkn2->next) {
-
-					if (tkn2->type == LWJSON_TYPE_NUM_INT) {
-						vlan_id = (int) lwjson_get_val_int(tkn2);
-						vlan_database_item_t* vlan = get_vlan_config(vlan_id);
-
-						if (user_sw_port < 6) {
-							printf("Set port %d as member of vlan: %ld \n\r", user_sw_port, vlan_id);
-							RTK_PORTMASK_PORT_SET(vlan->vlan_sw1.mbr, rtl_port);
-							RTK_PORTMASK_PORT_SET(vlan->vlan_sw1.mbr, LINK_PORT);
-							RTK_PORTMASK_PORT_SET(vlan->vlan_sw1.untag, rtl_port);
-							RTK_PORTMASK_PORT_SET(vlan->vlan_sw2.mbr, LINK_PORT);
-							//set_current_device(RTL_DEVICE_1);
-							printf("Set portPvid %ld for port: %d \n\r", vlan_id, rtl_port);
-							//rtk_api_ret_t rtl_status = rtk_vlan_portPvid_set(rtl_port, vlan_id, 0);
-							//check_for_error(rtl_status, "SW1 rtk_vlan_portPvid_set");
-						} else {
-							printf("Set port %d as member of vlan: %ld \n\r", user_sw_port, vlan_id);
-							RTK_PORTMASK_PORT_SET(vlan->vlan_sw2.mbr, rtl_port);
-							RTK_PORTMASK_PORT_SET(vlan->vlan_sw2.mbr, LINK_PORT);
-							RTK_PORTMASK_PORT_SET(vlan->vlan_sw2.untag, rtl_port);
-							RTK_PORTMASK_PORT_SET(vlan->vlan_sw1.mbr, LINK_PORT);
-							//set_current_device(RTL_DEVICE_2);
-							printf("Set portPvid %ld for port: %d \n\r", vlan_id, rtl_port);
-							//rtk_api_ret_t rtl_status = rtk_vlan_portPvid_set(rtl_port, vlan_id, 0);
-							//check_for_error(rtl_status, "SW2 rtk_vlan_portPvid_set");
-						}
-					}
-					if (tkn2->type == LWJSON_TYPE_ARRAY) {
-						//printf(": Token is array or object...check children tokens if any, in recursive mode..");
-						/* Get first child of token */
-						for (const lwjson_token_t *array = lwjson_get_first_child(tkn2); array != NULL; array = array->next) {
-							rtk_vlan_t trunk_vlan_id = (rtk_vlan_t) lwjson_get_val_int(array);
-							vlan_database_item_t* vlan = get_vlan_config(trunk_vlan_id);
-							printf("Set vlan : %ld as trunk member of port: %d\n\r", trunk_vlan_id, user_sw_port);
-							RTK_PORTMASK_PORT_SET(vlan->vlan_sw1.mbr, LINK_PORT);
-							RTK_PORTMASK_PORT_SET(vlan->vlan_sw2.mbr, LINK_PORT);
-							if (user_sw_port < 6) {
-								RTK_PORTMASK_PORT_SET(vlan->vlan_sw1.mbr, rtl_port);
-							} else {
-								RTK_PORTMASK_PORT_SET(vlan->vlan_sw2.mbr, rtl_port);
-							}
-						}
-					}
 				}
 			}
 		}
-		printf("Configuring vlans...\n\r");
-		for (int current_vlan=0; current_vlan<MAX_VLANS; current_vlan++) {
-			if (vlan_database[current_vlan].vid == 0) {
-				break;
+	}
+
+	printf("Configuring vlans...\n\r");
+	for (int current_vlan = 0; current_vlan < MAX_VLANS; current_vlan++) {
+		if (vlan_database[current_vlan].vid == 0) {
+			break;
+		}
+		printf("Configuring VLAN %ld \n\r", vlan_database[current_vlan].vid);
+		set_current_device(RTL_DEVICE_1);
+		rtk_api_ret_t rtl_status = rtk_vlan_set(vlan_database[current_vlan].vid,
+				&vlan_database[current_vlan].vlan_sw1);
+		check_for_error(rtl_status, "SW1 rtk_vlan_set");
+		printf("SW1 Members         : ");
+		print_bits(vlan_database[current_vlan].vlan_sw1.mbr);
+		printf("SW1 Untagged members: ");
+		print_bits(vlan_database[current_vlan].vlan_sw1.untag);
+
+		for (int port = 0; port < 5; port++) {
+			if (RTK_PORTMASK_IS_PORT_SET(
+					vlan_database[current_vlan].vlan_sw1.untag, port)) {
+				rtl_status = rtk_vlan_portPvid_set(port,
+						vlan_database[current_vlan].vid, 0);
+				check_for_error(rtl_status, "SW1 rtk_vlan_portPvid_set");
 			}
-			set_current_device(RTL_DEVICE_1);
-			rtk_api_ret_t rtl_status = rtk_vlan_set(vlan_database[current_vlan].vid, &vlan_database[current_vlan].vlan_sw1);
-			check_for_error(rtl_status, "SW1 rtk_vlan_set");
-			for (int port = 0; port < 5; port++) {
-				if (RTK_PORTMASK_IS_PORT_SET(vlan_database[current_vlan].vlan_sw1.untag, port)) {
-					 rtl_status = rtk_vlan_portPvid_set(port, vlan_database[current_vlan].vid, 0);
-				     check_for_error(rtl_status, "SW1 rtk_vlan_portPvid_set");
-				 }
-			}
-			set_current_device(RTL_DEVICE_2);
-			rtl_status = rtk_vlan_set(vlan_database[current_vlan].vid, &vlan_database[current_vlan].vlan_sw2);
-			check_for_error(rtl_status, "SW2 rtk_vlan_set");
-			for (int port = 0; port < 5; port++) {
-				if (RTK_PORTMASK_IS_PORT_SET(vlan_database[current_vlan].vlan_sw2.untag, port)) {
-					 rtl_status = rtk_vlan_portPvid_set(port, vlan_database[current_vlan].vid, 0);
-				     check_for_error(rtl_status, "SW2 rtk_vlan_portPvid_set");
-				 }
+		}
+		set_current_device(RTL_DEVICE_2);
+		printf("SW2 Members         : ");
+		print_bits(vlan_database[current_vlan].vlan_sw2.mbr);
+		printf("SW2 Untagged members: ");
+		print_bits(vlan_database[current_vlan].vlan_sw2.untag);
+		rtl_status = rtk_vlan_set(vlan_database[current_vlan].vid,
+				&vlan_database[current_vlan].vlan_sw2);
+		check_for_error(rtl_status, "SW2 rtk_vlan_set");
+		for (int port = 0; port < 5; port++) {
+			if (RTK_PORTMASK_IS_PORT_SET(
+					vlan_database[current_vlan].vlan_sw2.untag, port)) {
+				rtl_status = rtk_vlan_portPvid_set(port,
+						vlan_database[current_vlan].vid, 0);
+				check_for_error(rtl_status, "SW2 rtk_vlan_portPvid_set");
 			}
 		}
 	}
 }
 
 
-void load_switch_config(PortConfig* ports) {
-
+void load_switch_config(PortConfig *ports) {
 	set_current_device(RTL_DEVICE_1);
 	rtk_api_ret_t rtl_status = rtk_switch_init();
 	check_for_error(rtl_status, "SW1 rtk_switch_init");
