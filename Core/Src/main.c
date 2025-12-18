@@ -18,9 +18,12 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+#include "usb_device.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include "usbd_def.h"
+#include "usbd_cdc_if.h"
 #include "sw_config.h"
 #include "sw_menu.h"
 /* USER CODE END Includes */
@@ -32,7 +35,7 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-
+#define RX_BUFFER_SIZE 128
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -46,6 +49,9 @@ TIM_HandleTypeDef htim1;
 UART_HandleTypeDef huart1;
 
 /* USER CODE BEGIN PV */
+static uint8_t rxBuffer[RX_BUFFER_SIZE];
+static uint16_t rxIndex = 0;
+static volatile uint8_t usbDataReady = 0;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -99,20 +105,35 @@ int main(void)
   MX_GPIO_Init();
   MX_USART1_UART_Init();
   MX_TIM1_Init();
+  MX_USB_DEVICE_Init();
   /* USER CODE BEGIN 2 */
-    printf("\n\r=================================\n\r");
-    printf("====  *** putin huilo ***  ===\r\n");
-	printf("===      Starting switch      ===\n\r");
-	printf("=================================\n\r");
-	HAL_Delay(2000);
-	//load_switch_config();
-	Menu_Init();
+  HAL_Delay(2000);
+  //load_switch_config();
+  Menu_Init();
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
+  int connected = 0;
   while (1)
   {
+	  if (CDC_Get_DTR_State() == 0) {
+		  connected = 0;
+	  }
+	  if (CDC_Get_DTR_State() == 1 && connected == 0) {
+		  connected = 1;
+		  printf("\n\r=================================\n\r");
+		  printf("====  *** putin huilo ***    ====\r\n");
+		  printf("===      Starting switch      ===\n\r");
+		  printf("=================================\n\r");
+		  printf("\r\nWelcome to STM32 switch Menu!\r\n");
+		  ShowMainMenu();
+	  }
+	   if (usbDataReady) {
+		   ProcessInput((char*)rxBuffer);
+	       usbDataReady = 0;
+	    }
+
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -128,16 +149,18 @@ void SystemClock_Config(void)
 {
   RCC_OscInitTypeDef RCC_OscInitStruct = {0};
   RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
+  RCC_PeriphCLKInitTypeDef PeriphClkInit = {0};
 
   /** Initializes the RCC Oscillators according to the specified parameters
   * in the RCC_OscInitTypeDef structure.
   */
-  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI;
+  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE;
+  RCC_OscInitStruct.HSEState = RCC_HSE_ON;
+  RCC_OscInitStruct.HSEPredivValue = RCC_HSE_PREDIV_DIV1;
   RCC_OscInitStruct.HSIState = RCC_HSI_ON;
-  RCC_OscInitStruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
   RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
-  RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSI_DIV2;
-  RCC_OscInitStruct.PLL.PLLMUL = RCC_PLL_MUL16;
+  RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
+  RCC_OscInitStruct.PLL.PLLMUL = RCC_PLL_MUL9;
   if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
   {
     Error_Handler();
@@ -153,6 +176,12 @@ void SystemClock_Config(void)
   RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
 
   if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_2) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_USB;
+  PeriphClkInit.UsbClockSelection = RCC_USBCLKSOURCE_PLL_DIV1_5;
+  if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInit) != HAL_OK)
   {
     Error_Handler();
   }
@@ -318,10 +347,43 @@ void switch_probe() {
 PUTCHAR_PROTOTYPE {
 	/* Place your implementation of fputc here */
 	/* e.g. write a character to the USART1 and Loop until the end of transmission */
-	HAL_UART_Transmit(&huart1, (uint8_t*) &ch, 1, 0xFFFF);
+	//HAL_UART_Transmit(&huart1, (uint8_t*) &ch, 1, 0xFFFF);
 
+
+	if (CDC_Get_DTR_State() == 1) {
+		int count = 0;
+		while (CDC_Transmit_FS(&ch, 1) == USBD_BUSY) {
+			HAL_Delay(5);
+			count++;
+			if (count > 3) {
+				break;
+			}
+		}
+	}
 	return ch;
 }
+
+void USB_CDC_RxHandler(uint8_t* Buf, uint32_t Len)
+{
+	//USB_MenuRXHandler(Buf, Len);
+	CDC_Transmit_FS(Buf, Len);
+    // Copy received data into buffer
+    for (uint32_t i = 0; i < Len; i++) {
+        uint8_t rxData = Buf[i];
+        if (rxData == '\r' || rxData == '\n') {
+            rxBuffer[rxIndex] = '\0';
+            if (rxIndex > 0) {
+                usbDataReady = 1;   // signal main loop to process
+                rxIndex = 0;
+            }
+        } else {
+            if (rxIndex < RX_BUFFER_SIZE - 1) {
+                rxBuffer[rxIndex++] = rxData;
+            }
+        }
+    }
+}
+
 /*
 void print_chip_name(switch_chip_t chip) {
 	switch (chip) {

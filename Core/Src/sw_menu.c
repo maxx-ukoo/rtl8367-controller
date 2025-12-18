@@ -9,6 +9,8 @@
 #include "sw_menu.h"
 #include <string.h>
 #include <stdio.h>
+#include "usbd_def.h"
+#include "usbd_cdc_if.h"
 
 #define FLASH_PAGE_SIZE       1024U
 #define FLASH_USER_START_ADDR 0x0801FC00U   // Start of last page (page 127)
@@ -41,7 +43,17 @@ typedef struct {
 
 // --- Helper: send string over UART ---
 void UART_SendString(char *str) {
-    HAL_UART_Transmit(&huart1, (uint8_t*)str, strlen(str), HAL_MAX_DELAY);
+	if (CDC_Get_DTR_State() == 1) {
+		uint16_t len = strlen(str);
+		int count = 0;
+		while (CDC_Transmit_FS((uint8_t*)str, len) == USBD_BUSY) {
+			HAL_Delay(5);
+			count++;
+			if (count >3) {
+				break;
+			}
+		}
+	}
 }
 
 // --- Show menus ---
@@ -252,6 +264,27 @@ void ProcessInput(char *input) {
     }
 }
 
+void USB_MenuRXHandler(uint8_t* Buf, uint32_t Len) {
+    for (uint32_t i = 0; i < Len; i++) {
+        uint8_t rxData = Buf[i];
+
+        // Echo back to USB host
+        CDC_Transmit_FS(&rxData, 1);
+
+        if (rxData == '\r' || rxData == '\n') {
+            rxBuffer[rxIndex] = '\0'; // terminate string
+            if (rxIndex > 0) {
+                ProcessInput((char*)rxBuffer);
+                rxIndex = 0;
+            }
+        } else {
+            if (rxIndex < RX_BUFFER_SIZE - 1) {
+                rxBuffer[rxIndex++] = rxData;
+            }
+        }
+    }
+}
+
 // --- UART RX complete callback ---
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
     if (huart->Instance == USART1) {
@@ -279,8 +312,7 @@ void Menu_Init(void) {
         ports[i].trunkCount = 0;
     }
     Flash_ReadPorts();
-    UART_SendString("\r\nWelcome to STM32 switch Menu!\r\n");
-    ShowMainMenu();
-    HAL_UART_Receive_IT(&huart1, &rxData, 1);
+    //ShowMainMenu();
+    //HAL_UART_Receive_IT(&huart1, &rxData, 1);
     load_switch_config(ports);
 }

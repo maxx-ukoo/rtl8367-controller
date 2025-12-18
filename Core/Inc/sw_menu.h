@@ -20,6 +20,9 @@ typedef struct {
 } PortConfig;
 
 void Menu_Init(void);
+void ShowMainMenu(void);
+
+void USB_MenuRXHandler(uint8_t* Buf, uint32_t Len);
 
 
 #endif /* INC_SW_MENU_H_ */
